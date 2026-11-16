@@ -29,3 +29,6 @@ git push -u origin main
 ## Estado (Etapa 1)
 Estrutura, tema escuro, menu lateral, autenticação (Supabase Auth) e dashboard com estados vazios.
 Demais módulos são páginas provisórias que indicam a etapa prevista.
+
+## Problemas comuns (Windows)
+- **"swc ... is not a valid Win32 application"**: o binário nativo do Next veio corrompido. O `npm run dev` já usa webpack e funciona mesmo assim. Para corrigir de vez: apague `node_modules` e `.next`, rode `npm cache verify` e `npm install`. Para tentar o modo rápido: `npm run dev:turbo`.
