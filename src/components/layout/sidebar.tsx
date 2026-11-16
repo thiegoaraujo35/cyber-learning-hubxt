@@ -22,7 +22,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               active
-                ? "bg-primary/15 text-primary"
+                ? "bg-primary/10 text-primary shadow-[inset_2px_0_0_0_var(--primary)]"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -38,10 +38,10 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 function Brand() {
   return (
     <div className="flex items-center gap-2 px-6 py-5">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#ff8a3d] to-[#ff4d6d]">
         <ShieldCheck className="size-4 text-white" />
       </span>
-      <span className="text-sm font-semibold tracking-tight">Cyber Learning Hub</span>
+      <span className="text-sm font-bold tracking-tight">Cyber Learning <span className="text-gradient">Hub</span></span>
     </div>
   );
 }

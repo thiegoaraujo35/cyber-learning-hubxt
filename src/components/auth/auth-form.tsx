@@ -23,7 +23,7 @@ export function AuthForm({ mode, action }: Props) {
       <Card className="w-full max-w-sm">
         <CardContent className="flex flex-col gap-6 p-8">
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#ff8a3d] to-[#ff4d6d]">
               <ShieldCheck className="size-5 text-white" />
             </span>
             <h1 className="text-xl font-semibold">Cyber Learning Hub</h1>

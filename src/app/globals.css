@@ -1,24 +1,25 @@
 @import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 /* Cyber Learning Hub — visual inspirado no AI Interviewer:
-   fundo navy com degradê índigo, primária coral, cards translúcidos. */
+   fundo quase preto com grade sutil, gradiente laranja → rosa, cards escuros. */
 :root {
-  --background: #0a0f26;
-  --foreground: #f1f3fb;
-  --card: rgba(255, 255, 255, 0.045);
-  --card-foreground: #f1f3fb;
-  --muted: rgba(255, 255, 255, 0.06);
-  --muted-foreground: #9aa3c7;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(10, 15, 38, 0.7);
-  --ring: #f4845f;
-  --primary: #f4845f;
-  --primary-foreground: #1b1020;
-  --secondary: rgba(255, 255, 255, 0.08);
-  --secondary-foreground: #f1f3fb;
-  --accent: #5b7cfa;
+  --background: #0a0c13;
+  --foreground: #f4f5f8;
+  --card: #10131c;
+  --card-foreground: #f4f5f8;
+  --muted: #161a25;
+  --muted-foreground: #9aa0b4;
+  --border: #1f2431;
+  --input: #0c0f17;
+  --ring: #ff7a2f;
+  --primary: #ff7a2f;
+  --primary-foreground: #1a0d05;
+  --secondary: #161a25;
+  --secondary-foreground: #f4f5f8;
+  --accent: #ff4d6d;
   --destructive: #ef4444;
-  --sidebar: rgba(6, 10, 28, 0.85);
+  --sidebar: #090b11;
 }
 
 @theme inline {
@@ -38,8 +39,8 @@
   --color-accent: var(--accent);
   --color-destructive: var(--destructive);
   --color-sidebar: var(--sidebar);
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-sans: "Plus Jakarta Sans Variable", var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 html {
@@ -51,8 +52,29 @@ body {
   font-family: var(--font-sans);
   background-color: var(--background);
   background-image:
-    radial-gradient(900px 500px at 85% -10%, rgba(91, 124, 250, 0.28), transparent 60%),
-    radial-gradient(700px 500px at 0% 100%, rgba(244, 132, 95, 0.12), transparent 60%),
-    linear-gradient(180deg, #0a0f26 0%, #121a45 100%);
+    radial-gradient(700px 420px at 0% 0%, rgba(255, 122, 47, 0.16), transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
   background-attachment: fixed;
+}
+
+h1, h2 {
+  letter-spacing: -0.03em;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #ff8a3d 0%, #ff4d6d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
 }

@@ -19,17 +19,17 @@ export function WeeklyChart({ data }: { data: WeeklyPoint[] }) {
         <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
           <defs>
             <linearGradient id="hoursFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f4845f" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#5b7cfa" stopOpacity={0.05} />
+              <stop offset="0%" stopColor="#ff7a2f" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#ff4d6d" stopOpacity={0.04} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="day" stroke="#9aa3c7" fontSize={12} tickLine={false} axisLine={false} />
-          <YAxis stroke="#9aa3c7" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+          <CartesianGrid stroke="#1f2431" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="day" stroke="#9aa0b4" fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis stroke="#9aa0b4" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip
             contentStyle={{
-              background: "#121a45",
-              border: "1px solid rgba(255,255,255,0.12)",
+              background: "#10131c",
+              border: "1px solid #1f2431",
               borderRadius: 12,
               color: "#e6ebf7",
             }}
@@ -38,7 +38,7 @@ export function WeeklyChart({ data }: { data: WeeklyPoint[] }) {
           <Area
             type="monotone"
             dataKey="hours"
-            stroke="#f4845f"
+            stroke="#ff7a2f"
             strokeWidth={2}
             fill="url(#hoursFill)"
           />

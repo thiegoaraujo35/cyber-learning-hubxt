@@ -6,14 +6,15 @@ Plataforma pessoal de gestão de aprendizagem em Cybersecurity (Next.js 16 + Sup
 Requisitos: Node.js 20+; Docker (apenas para o Supabase local).
 
 ```bash
-# Linux/macOS/WSL                 # Windows (PowerShell)
-./scripts/setup.sh                .\scripts\setup.ps1
+# Linux/macOS/WSL                 # Windows (CMD ou PowerShell)
+./scripts/setup.sh                scripts\setup.cmd
 ```
 Depois:
 ```bash
 npx supabase start     # exibe API URL e anon key -> cole em .env.local
 npm run dev            # http://localhost:3000
 ```
+No Windows, o `setup.cmd` já contorna o erro "não está assinado digitalmente" do PowerShell.
 Sem Supabase configurado o app abre, mas login/cadastro avisam que falta configuração.
 
 ## Publicar no GitHub
