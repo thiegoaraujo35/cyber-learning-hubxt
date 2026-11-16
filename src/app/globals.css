@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
-/* Cyber Learning Hub — tema escuro: azul marinho, azul elétrico, roxo discreto */
+/* Cyber Learning Hub — visual inspirado no AI Interviewer:
+   fundo navy com degradê índigo, primária coral, cards translúcidos. */
 :root {
-  --background: #070d1f;
-  --foreground: #e6ebf7;
-  --card: #0d1630;
-  --card-foreground: #e6ebf7;
-  --muted: #121d3d;
-  --muted-foreground: #8b98b8;
-  --border: #1d2a4d;
-  --input: #0a1228;
-  --ring: #3b82f6;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #172447;
-  --secondary-foreground: #e6ebf7;
-  --accent: #8b5cf6;
+  --background: #0a0f26;
+  --foreground: #f1f3fb;
+  --card: rgba(255, 255, 255, 0.045);
+  --card-foreground: #f1f3fb;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #9aa3c7;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(10, 15, 38, 0.7);
+  --ring: #f4845f;
+  --primary: #f4845f;
+  --primary-foreground: #1b1020;
+  --secondary: rgba(255, 255, 255, 0.08);
+  --secondary-foreground: #f1f3fb;
+  --accent: #5b7cfa;
   --destructive: #ef4444;
-  --sidebar: #050a18;
+  --sidebar: rgba(6, 10, 28, 0.85);
 }
 
 @theme inline {
@@ -46,7 +47,12 @@ html {
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(900px 500px at 85% -10%, rgba(91, 124, 250, 0.28), transparent 60%),
+    radial-gradient(700px 500px at 0% 100%, rgba(244, 132, 95, 0.12), transparent 60%),
+    linear-gradient(180deg, #0a0f26 0%, #121a45 100%);
+  background-attachment: fixed;
 }
