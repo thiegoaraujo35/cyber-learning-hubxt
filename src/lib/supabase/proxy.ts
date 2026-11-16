@@ -13,6 +13,12 @@ export function isSupabaseConfigured() {
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Modo visualização local: pula o login SOMENTE em `next dev` e com flag explícita.
+  // Nunca vale em produção (NODE_ENV !== "development").
+  if (process.env.NODE_ENV === "development" && process.env.DEV_BYPASS_AUTH === "true") {
+    return response;
+  }
+
   if (!isSupabaseConfigured()) {
     // Sem Supabase configurado, apenas as páginas públicas funcionam.
     const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));

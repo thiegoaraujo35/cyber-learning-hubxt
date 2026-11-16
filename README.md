@@ -2,7 +2,10 @@
 
 Plataforma pessoal de gestão de aprendizagem em Cybersecurity (Next.js 16 + Supabase).
 
-## Rodar na sua máquina
+## Início rápido (Windows)
+Dois cliques em **`iniciar.cmd`**: instala, configura o `.env.local`, sobe o Supabase local se o Docker Desktop estiver aberto e abre http://localhost:3000. Sem Docker, abre em *modo visualização* (sem login, só em `npm run dev`).
+
+## Rodar manualmente
 Requisitos: Node.js 20+; Docker (apenas para o Supabase local).
 
 ```bash
