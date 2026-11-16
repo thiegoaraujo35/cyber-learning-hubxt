@@ -1,4 +1,5 @@
 # Setup local (Windows PowerShell). Requer Node 20+ e, para o banco local, Docker Desktop.
+Set-Location (Split-Path $PSScriptRoot -Parent)   # sempre na raiz do projeto
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Write-Error "Instale o Node.js 20+"; exit 1 }
 npm install
 if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
