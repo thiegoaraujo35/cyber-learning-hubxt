@@ -26,9 +26,21 @@ git remote add origin https://github.com/SEU_USUARIO/cyber-learning-hub.git
 git push -u origin main
 ```
 
-## Estado (Etapa 1)
-Estrutura, tema escuro, menu lateral, autenticação (Supabase Auth) e dashboard com estados vazios.
-Demais módulos são páginas provisórias que indicam a etapa prevista.
+## Estado
+- **Etapa 1** — estrutura, tema escuro, menu lateral, autenticação (Supabase Auth) e dashboard.
+- **Etapa 2** — banco de dados + cadastros: **Meus cursos**, **Certificações**, **Laboratórios**,
+  **Metas e planejamento** (com cronograma) e registro de **sessões de estudo**. O dashboard passa a
+  ler dados reais (cursos, horas, certificações, laboratórios, gráfico semanal e histórico).
+- Etapas 3–5: módulos ainda provisórios (Plataformas → 3; Learning Paths e Biblioteca → 4;
+  Relatórios e Configurações → 5).
+
+### Aplicar a migration da Etapa 2
+```bash
+npx supabase start        # sobe o Postgres local (Docker)
+npx supabase db reset     # aplica supabase/migrations/*.sql
+```
+Na nuvem: `npx supabase link --project-ref <ref>` e `npx supabase db push`.
+Todas as tabelas têm RLS: cada usuário só vê e altera os próprios dados.
 
 ## Problemas comuns (Windows)
 - **"swc ... is not a valid Win32 application"**: o binário nativo do Next veio corrompido. O `npm run dev` já usa webpack e funciona mesmo assim. Para corrigir de vez: apague `node_modules` e `.next`, rode `npm cache verify` e `npm install`. Para tentar o modo rápido: `npm run dev:turbo`.

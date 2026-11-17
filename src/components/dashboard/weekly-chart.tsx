@@ -25,7 +25,7 @@ export function WeeklyChart({ data }: { data: WeeklyPoint[] }) {
           </defs>
           <CartesianGrid stroke="#1f2431" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="day" stroke="#9aa0b4" fontSize={12} tickLine={false} axisLine={false} />
-          <YAxis stroke="#9aa0b4" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+          <YAxis stroke="#9aa0b4" fontSize={12} tickLine={false} axisLine={false} />
           <Tooltip
             contentStyle={{
               background: "#10131c",
