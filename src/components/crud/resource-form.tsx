@@ -11,7 +11,7 @@ import type { FormState } from "@/lib/crud";
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "url" | "date" | "number" | "textarea" | "select";
+  type: "text" | "url" | "date" | "number" | "password" | "textarea" | "select";
   options?: { value: string; label: string }[];
   required?: boolean;
   placeholder?: string;
@@ -29,14 +29,20 @@ type Props = {
   values?: Record<string, string | number | null | undefined>;
   submitLabel?: string;
   cancelHref?: string;
+  /** Campos ocultos fixos enviados junto (ex.: id da trilha). */
+  hiddenFields?: Record<string, string>;
 };
 
-export function ResourceForm({ fields, action, values, submitLabel = "Salvar", cancelHref }: Props) {
+export function ResourceForm({ fields, action, values, submitLabel = "Salvar", cancelHref, hiddenFields }: Props) {
   const [state, formAction, pending] = useActionState(action, {} as FormState);
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       {values?.id ? <input type="hidden" name="id" value={String(values.id)} /> : null}
+      {hiddenFields &&
+        Object.entries(hiddenFields).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
 
       {fields.map((f) => {
         const initial = values?.[f.name];
@@ -66,11 +72,18 @@ export function ResourceForm({ fields, action, values, submitLabel = "Salvar", c
                 min={f.min}
                 max={f.max}
                 step={f.step}
+                autoComplete={f.type === "password" ? "new-password" : undefined}
               />
             )}
           </div>
         );
       })}
+
+      {state.message && (
+        <p role="status" className="text-sm text-emerald-400 sm:col-span-2">
+          {state.message}
+        </p>
+      )}
 
       {state.error && (
         <p role="alert" className="text-sm text-destructive sm:col-span-2">

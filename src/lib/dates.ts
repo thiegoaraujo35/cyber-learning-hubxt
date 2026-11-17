@@ -23,3 +23,17 @@ export function formatDate(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
 }
+
+const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+/** Os últimos `n` meses (mais antigo → atual) como { key: "YYYY-MM", label }. */
+export function lastMonths(today: string, n: number): { key: string; label: string }[] {
+  const [y, m] = today.split("-").map(Number);
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - 1 - (n - 1 - i), 1));
+    return {
+      key: d.toISOString().slice(0, 7),
+      label: `${MONTHS[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`,
+    };
+  });
+}

@@ -63,6 +63,42 @@ export const GOAL_STATUS_TONE: Record<(typeof GOAL_STATUS)[number], BadgeTone> =
   cancelada: "muted",
 };
 
+export const PLATFORM_STATUS = ["ativa", "inativa"] as const;
+export const PLATFORM_STATUS_LABEL: Record<(typeof PLATFORM_STATUS)[number], string> = {
+  ativa: "Ativa",
+  inativa: "Inativa",
+};
+
+export const PATH_STATUS = ["ativa", "concluida", "pausada"] as const;
+export const PATH_STATUS_LABEL: Record<(typeof PATH_STATUS)[number], string> = {
+  ativa: "Ativa",
+  concluida: "Concluída",
+  pausada: "Pausada",
+};
+export const PATH_STATUS_TONE: Record<(typeof PATH_STATUS)[number], BadgeTone> = {
+  ativa: "default",
+  concluida: "success",
+  pausada: "warning",
+};
+
+export const PATH_ITEM_KIND = ["course", "certification", "lab"] as const;
+export const PATH_ITEM_KIND_LABEL: Record<(typeof PATH_ITEM_KIND)[number], string> = {
+  course: "Curso",
+  certification: "Certificação",
+  lab: "Laboratório",
+};
+
+export const RESOURCE_KIND = ["documentacao", "artigo", "video", "livro", "ferramenta", "cheatsheet", "outro"] as const;
+export const RESOURCE_KIND_LABEL: Record<(typeof RESOURCE_KIND)[number], string> = {
+  documentacao: "Documentação",
+  artigo: "Artigo",
+  video: "Vídeo",
+  livro: "Livro",
+  ferramenta: "Ferramenta",
+  cheatsheet: "Cheat sheet",
+  outro: "Outro",
+};
+
 export function toOptions<T extends string>(labels: Record<T, string>) {
   return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 }
@@ -75,6 +111,9 @@ export type Course = {
   status: (typeof COURSE_STATUS)[number];
   progress: number;
   hours_total: number | null;
+  platform_id: string | null;
+  total_lessons: number | null;
+  completed_lessons: number;
   started_at: string | null;
   completed_at: string | null;
   notes: string | null;
@@ -119,4 +158,38 @@ export type StudySession = {
   studied_on: string;
   minutes: number;
   note: string | null;
+};
+
+export type Platform = {
+  id: string;
+  name: string;
+  url: string | null;
+  account_label: string | null;
+  plan: string | null;
+  status: (typeof PLATFORM_STATUS)[number];
+  notes: string | null;
+};
+
+export type LearningPath = {
+  id: string;
+  title: string;
+  description: string | null;
+  target_date: string | null;
+  status: (typeof PATH_STATUS)[number];
+};
+
+export type PathItem = {
+  id: string;
+  path_id: string;
+  kind: (typeof PATH_ITEM_KIND)[number];
+  ref_id: string;
+};
+
+export type Resource = {
+  id: string;
+  title: string;
+  kind: (typeof RESOURCE_KIND)[number];
+  url: string | null;
+  tags: string | null;
+  notes: string | null;
 };

@@ -18,9 +18,11 @@ type Props = {
   notes?: string | null;
   editHref: string;
   deleteAction: (formData: FormData) => Promise<void>;
+  /** Conteúdo extra no rodapé (ex.: botão de ação rápida). */
+  extra?: React.ReactNode;
 };
 
-export function ResourceItem({ id, title, subtitle, badges, meta, progress, url, notes, editHref, deleteAction }: Props) {
+export function ResourceItem({ id, title, subtitle, badges, meta, progress, url, notes, editHref, deleteAction, extra }: Props) {
   const metaLines = (meta ?? []).filter(Boolean) as string[];
   return (
     <Card className="flex flex-col gap-3 p-5">
@@ -70,6 +72,8 @@ export function ResourceItem({ id, title, subtitle, badges, meta, progress, url,
       )}
 
       {notes && <p className="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">{notes}</p>}
+
+      {extra}
 
       {url && (
         <a

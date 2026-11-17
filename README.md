@@ -31,10 +31,14 @@ git push -u origin main
 - **Etapa 2** — banco de dados + cadastros: **Meus cursos**, **Certificações**, **Laboratórios**,
   **Metas e planejamento** (com cronograma) e registro de **sessões de estudo**. O dashboard passa a
   ler dados reais (cursos, horas, certificações, laboratórios, gráfico semanal e histórico).
-- Etapas 3–5: módulos ainda provisórios (Plataformas → 3; Learning Paths e Biblioteca → 4;
-  Relatórios e Configurações → 5).
+- **Etapa 3** — **Minhas plataformas** (cadastro manual, sem senhas/tokens), cursos ligados a uma
+  plataforma, progresso por **aulas concluídas** (botão "+1 aula") e **importação de cursos por link**.
+- **Etapa 4** — **Learning Paths** (trilhas com cursos, certificações e laboratórios; progresso
+  calculado) e **Biblioteca** de materiais com tipos e tags.
+- **Etapa 5** — **Relatórios** (horas por mês, distribuição por status, exportação CSV) e
+  **Configurações** (nome, meta semanal, troca de senha).
 
-### Aplicar a migration da Etapa 2
+### Aplicar as migrations (Etapas 2–5)
 ```bash
 npx supabase start        # sobe o Postgres local (Docker)
 npx supabase db reset     # aplica supabase/migrations/*.sql

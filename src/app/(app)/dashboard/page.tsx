@@ -84,13 +84,13 @@ async function DashboardData() {
     return (
       <>
         <NeedsLogin />
-        <Panels stats={EMPTY_STATS} weekly={EMPTY_WEEK} history={[]} studyForm={null} />
+        <Panels stats={EMPTY_STATS} weekly={EMPTY_WEEK} weekSummary={null} history={[]} studyForm={null} />
       </>
     );
   }
 
   const { supabase } = session;
-  const [courses, certs, labs, sessions] = await Promise.all([
+  const [courses, certs, labs, sessions, paths, settings] = await Promise.all([
     supabase.from("courses").select("id,title,status"),
     supabase.from("certifications").select("status"),
     supabase.from("labs").select("status"),
@@ -99,9 +99,11 @@ async function DashboardData() {
       .select("id,course_id,studied_on,minutes,note")
       .order("studied_on", { ascending: false })
       .order("created_at", { ascending: false }),
+    supabase.from("learning_paths").select("status"),
+    supabase.from("user_settings").select("weekly_goal_hours").maybeSingle(),
   ]);
 
-  if (courses.error || certs.error || labs.error || sessions.error) {
+  if (courses.error || certs.error || labs.error || sessions.error || paths.error || settings.error) {
     return (
       <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-4 text-sm text-destructive">
         Não foi possível carregar os indicadores. Confira se a migration da Etapa 2 foi aplicada
@@ -128,8 +130,7 @@ async function DashboardData() {
     { label: "Certificações conquistadas", value: count(certRows, "conquistada") },
     { label: "Certificações planejadas", value: count(certRows, "planejada", "estudando", "agendada") },
     { label: "Laboratórios concluídos", value: count(labRows, "concluido") },
-    // Trilhas (Learning Paths) chegam na Etapa 4.
-    { label: "Trilhas ativas", value: 0 },
+    { label: "Trilhas ativas", value: count(paths.data ?? [], "ativa") },
   ];
 
   const today = todayISO();
@@ -141,6 +142,9 @@ async function DashboardData() {
     day: DAY_LABELS[i],
     hours: Math.round(((minutesByDay.get(date) ?? 0) / 60) * 10) / 10,
   }));
+
+  const weekHours = Math.round(weekly.reduce((sum, w) => sum + w.hours, 0) * 10) / 10;
+  const weeklyGoal = settings.data ? Number(settings.data.weekly_goal_hours) : null;
 
   const titleById = new Map(courseRows.map((c) => [c.id, c.title]));
   const history: HistoryItem[] = sessionRows.slice(0, 8).map((s) => ({
@@ -181,6 +185,7 @@ async function DashboardData() {
       <Panels
         stats={stats}
         weekly={weekly}
+        weekSummary={weeklyGoal !== null ? `Meta semanal: ${weekHours} h de ${weeklyGoal} h.` : null}
         history={history}
         studyForm={<ResourceForm fields={studyFields} action={saveSession} values={{ studied_on: today }} submitLabel="Registrar estudo" />}
       />
@@ -191,11 +196,13 @@ async function DashboardData() {
 function Panels({
   stats,
   weekly,
+  weekSummary,
   history,
   studyForm,
 }: {
   stats: Stat[];
   weekly: WeeklyPoint[];
+  weekSummary: string | null;
   history: HistoryItem[];
   studyForm: React.ReactNode;
 }) {
@@ -207,7 +214,9 @@ function Panels({
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-foreground">Progresso semanal</CardTitle>
-            <CardDescription>Horas de estudo por dia da semana atual.</CardDescription>
+            <CardDescription>
+              Horas de estudo por dia da semana atual.{weekSummary ? ` ${weekSummary}` : ""}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <WeeklyChart data={weekly} />

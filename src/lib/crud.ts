@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { z } from "zod";
 import { getSession } from "@/lib/data";
 
-export type FormState = { error?: string };
+export type FormState = { error?: string; message?: string };
 
 const NEEDS_LOGIN =
   "Entre com sua conta para salvar dados (o modo visualização e o app sem Supabase não gravam nada).";
