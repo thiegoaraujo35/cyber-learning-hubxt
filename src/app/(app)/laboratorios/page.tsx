@@ -1,19 +1,12 @@
-import { Suspense } from "react";
-import { ModuleHeader, EmptyState, LoadError, NeedsLogin } from "@/components/crud/module-shell";
-import { ResourceForm, type Field } from "@/components/crud/resource-form";
-import { ResourceItem } from "@/components/crud/resource-item";
-import { getSession } from "@/lib/data";
-import { formatDate } from "@/lib/dates";
-import {
-  LAB_DIFFICULTY_LABEL,
-  LAB_STATUS_LABEL,
-  LAB_STATUS_TONE,
-  toOptions,
-  type Lab,
-} from "@/lib/types";
-import { deleteLab, saveLab } from "./actions";
+"use client";
 
-export const metadata = { title: "Laboratórios — Cyber Learning Hub" };
+import { CrudModule } from "@/components/crud/crud-module";
+import { ModuleHeader } from "@/components/crud/module-shell";
+import type { Field } from "@/components/crud/resource-form";
+import { ResourceItem } from "@/components/crud/resource-item";
+import { formatDate, todayISO } from "@/lib/dates";
+import { labSchema } from "@/lib/schemas";
+import { LAB_DIFFICULTY_LABEL, LAB_STATUS_LABEL, LAB_STATUS_TONE, toOptions, type Lab } from "@/lib/types";
 
 const FIELDS: Field[] = [
   { name: "title", label: "Laboratório / sala / máquina", type: "text", required: true, wide: true, placeholder: "Ex.: Blue (TryHackMe)" },
@@ -26,72 +19,37 @@ const FIELDS: Field[] = [
   { name: "notes", label: "Anotações", type: "textarea" },
 ];
 
-export default function Page({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+export default function Page() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <ModuleHeader title="Laboratórios" description="Prática em laboratórios e evidências." />
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
-        <Content searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
-}
-
-async function Content({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  const { edit } = await searchParams;
-  const session = await getSession();
-  if (!session) return <NeedsLogin />;
-
-  const { data, error } = await session.supabase
-    .from("labs")
-    .select("id,title,platform,category,difficulty,status,completed_at,evidence_url,notes")
-    .order("created_at", { ascending: false });
-  if (error) return <LoadError />;
-
-  const labs = (data ?? []) as Lab[];
-  const editing = labs.find((l) => l.id === edit);
-
-  return (
-    <>
-      <details open={Boolean(editing)} className="rounded-2xl border border-border bg-card p-5">
-        <summary className="cursor-pointer text-sm font-semibold">
-          {editing ? `Editando: ${editing.title}` : "+ Novo laboratório"}
-        </summary>
-        <div className="mt-4">
-          <ResourceForm
-            key={editing?.id ?? "novo"}
-            fields={FIELDS}
-            action={saveLab}
-            values={editing ?? { status: "pendente", difficulty: "iniciante" }}
-            submitLabel={editing ? "Salvar alterações" : "Adicionar laboratório"}
-            cancelHref={editing ? "/laboratorios" : undefined}
+      <CrudModule<Lab, typeof labSchema>
+        table="labs"
+        select="id,title,platform,category,difficulty,status,completed_at,evidence_url,notes"
+        fields={FIELDS}
+        schema={labSchema}
+        defaults={{ status: "pendente", difficulty: "iniciante" }}
+        newLabel="+ Novo laboratório"
+        submitNew="Adicionar laboratório"
+        editTitle={(l) => l.title}
+        emptyText="Nenhum laboratório registrado ainda. Use “Novo” para começar."
+        prepare={(d) => (d.status === "concluido" ? { ...d, completed_at: d.completed_at ?? todayISO() } : d)}
+        renderItem={(l, ctx) => (
+          <ResourceItem
+            title={l.title}
+            subtitle={[l.platform, l.category].filter(Boolean).join(" · ") || null}
+            badges={[
+              { label: LAB_STATUS_LABEL[l.status], tone: LAB_STATUS_TONE[l.status] },
+              { label: LAB_DIFFICULTY_LABEL[l.difficulty], tone: "muted" },
+            ]}
+            meta={[l.completed_at ? `Concluído em: ${formatDate(l.completed_at)}` : null]}
+            notes={l.notes}
+            url={l.evidence_url ? { href: l.evidence_url, label: "Ver evidência" } : null}
+            onEdit={ctx.onEdit}
+            onDelete={ctx.onDelete}
           />
-        </div>
-      </details>
-
-      {labs.length === 0 ? (
-        <EmptyState>Nenhum laboratório registrado ainda. Use “+ Novo laboratório” para começar.</EmptyState>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {labs.map((l) => (
-            <ResourceItem
-              key={l.id}
-              id={l.id}
-              title={l.title}
-              subtitle={[l.platform, l.category].filter(Boolean).join(" · ") || null}
-              badges={[
-                { label: LAB_STATUS_LABEL[l.status], tone: LAB_STATUS_TONE[l.status] },
-                { label: LAB_DIFFICULTY_LABEL[l.difficulty], tone: "muted" },
-              ]}
-              meta={[l.completed_at ? `Concluído em: ${formatDate(l.completed_at)}` : null]}
-              notes={l.notes}
-              url={l.evidence_url ? { href: l.evidence_url, label: "Ver evidência" } : null}
-              editHref={`/laboratorios?edit=${l.id}`}
-              deleteAction={deleteLab}
-            />
-          ))}
-        </div>
-      )}
-    </>
+        )}
+      />
+    </div>
   );
 }

@@ -1,12 +1,12 @@
-import { Suspense } from "react";
-import { ModuleHeader, EmptyState, LoadError, NeedsLogin } from "@/components/crud/module-shell";
-import { ResourceForm, type Field } from "@/components/crud/resource-form";
-import { ResourceItem } from "@/components/crud/resource-item";
-import { getSession } from "@/lib/data";
-import { PLATFORM_STATUS_LABEL, toOptions, type Platform } from "@/lib/types";
-import { deletePlatform, savePlatform } from "./actions";
+"use client";
 
-export const metadata = { title: "Minhas plataformas — Cyber Learning Hub" };
+import { CrudModule } from "@/components/crud/crud-module";
+import { Loading, ModuleHeader } from "@/components/crud/module-shell";
+import type { Field } from "@/components/crud/resource-form";
+import { ResourceItem } from "@/components/crud/resource-item";
+import { fetchRows, useAsync } from "@/lib/db";
+import { platformSchema } from "@/lib/schemas";
+import { PLATFORM_STATUS_LABEL, toOptions, type Platform } from "@/lib/types";
 
 const FIELDS: Field[] = [
   { name: "name", label: "Plataforma", type: "text", required: true, wide: true, placeholder: "Ex.: Udemy, TryHackMe, Hack The Box" },
@@ -17,82 +17,49 @@ const FIELDS: Field[] = [
   { name: "notes", label: "Anotações", type: "textarea" },
 ];
 
-export default function Page({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+type CourseRef = { platform_id: string | null; status: string };
+
+export default function Page() {
+  const { data: courses } = useAsync(() => fetchRows<CourseRef>("courses", "platform_id,status", null));
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <ModuleHeader title="Minhas plataformas" description="Plataformas de aprendizagem que você usa." />
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
-        <Content searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
-}
-
-async function Content({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  const { edit } = await searchParams;
-  const session = await getSession();
-  if (!session) return <NeedsLogin />;
-
-  const [platformsRes, coursesRes] = await Promise.all([
-    session.supabase
-      .from("platforms")
-      .select("id,name,url,account_label,plan,status,notes")
-      .order("name"),
-    session.supabase.from("courses").select("platform_id,status"),
-  ]);
-  if (platformsRes.error || coursesRes.error) return <LoadError />;
-
-  const platforms = (platformsRes.data ?? []) as Platform[];
-  const editing = platforms.find((p) => p.id === edit);
-  const courses = coursesRes.data ?? [];
-
-  return (
-    <>
       <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
-        Aqui você só registra onde estuda. A plataforma não guarda senhas nem tokens, e não se conecta
-        sozinha a nenhum site: o progresso vem do que você registra nos cursos.
+        Aqui você só registra onde estuda. O app não guarda senhas nem tokens, e não se conecta sozinho a
+        nenhum site: o progresso vem do que você registra nos cursos.
       </p>
-
-      <details open={Boolean(editing)} className="rounded-2xl border border-border bg-card p-5">
-        <summary className="cursor-pointer text-sm font-semibold">
-          {editing ? `Editando: ${editing.name}` : "+ Nova plataforma"}
-        </summary>
-        <div className="mt-4">
-          <ResourceForm
-            key={editing?.id ?? "nova"}
-            fields={FIELDS}
-            action={savePlatform}
-            values={editing ?? { status: "ativa" }}
-            submitLabel={editing ? "Salvar alterações" : "Adicionar plataforma"}
-            cancelHref={editing ? "/plataformas" : undefined}
-          />
-        </div>
-      </details>
-
-      {platforms.length === 0 ? (
-        <EmptyState>Nenhuma plataforma cadastrada ainda. Use “+ Nova plataforma” para começar.</EmptyState>
+      {!courses ? (
+        <Loading />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {platforms.map((p) => {
+        <CrudModule<Platform, typeof platformSchema>
+          table="platforms"
+          select="id,name,url,account_label,plan,status,notes"
+          fields={FIELDS}
+          schema={platformSchema}
+          defaults={{ status: "ativa" }}
+          newLabel="+ Nova plataforma"
+          submitNew="Adicionar plataforma"
+          editTitle={(p) => p.name}
+          emptyText="Nenhuma plataforma cadastrada ainda. Use “Novo” para começar."
+          renderItem={(p, ctx) => {
             const mine = courses.filter((c) => c.platform_id === p.id);
             const done = mine.filter((c) => c.status === "concluido").length;
             return (
               <ResourceItem
-                key={p.id}
-                id={p.id}
                 title={p.name}
                 subtitle={[p.plan, p.account_label].filter(Boolean).join(" · ") || null}
                 badges={[{ label: PLATFORM_STATUS_LABEL[p.status], tone: p.status === "ativa" ? "success" : "muted" }]}
                 meta={[`${mine.length} curso(s) · ${done} concluído(s)`]}
                 notes={p.notes}
                 url={p.url ? { href: p.url, label: "Abrir plataforma" } : null}
-                editHref={`/plataformas?edit=${p.id}`}
-                deleteAction={deletePlatform}
+                onEdit={ctx.onEdit}
+                onDelete={ctx.onDelete}
               />
             );
-          })}
-        </div>
+          }}
+        />
       )}
-    </>
+    </div>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { DeleteButton } from "@/components/crud/delete-button";
 import { formatDate } from "@/lib/dates";
 
@@ -11,10 +13,10 @@ export type HistoryItem = {
 
 export function HistoryList({
   items,
-  deleteAction,
+  onDelete,
 }: {
   items: HistoryItem[];
-  deleteAction: (formData: FormData) => Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
 }) {
   if (items.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma atividade registrada.</p>;
@@ -29,7 +31,7 @@ export function HistoryList({
               {formatDate(s.studied_on)} · {s.minutes} min{s.note ? ` · ${s.note}` : ""}
             </p>
           </div>
-          <DeleteButton id={s.id} action={deleteAction} confirmText="Excluir este registro de estudo?" />
+          <DeleteButton onDelete={() => onDelete(s.id)} confirmText="Excluir este registro de estudo?" />
         </li>
       ))}
     </ul>

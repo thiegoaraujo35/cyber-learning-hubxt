@@ -1,11 +1,14 @@
-import { Suspense } from "react";
+"use client";
+
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadError, ModuleHeader, NeedsLogin } from "@/components/crud/module-shell";
+import { Loading, LoadError, ModuleHeader } from "@/components/crud/module-shell";
 import { MonthlyChart, type MonthlyPoint } from "@/components/dashboard/monthly-chart";
 import { StatStrip, type Stat } from "@/components/dashboard/stat-strip";
-import { getSession } from "@/lib/data";
+import { EXPORTS, downloadText, toCsv, type ExportKey } from "@/lib/csv";
+import { fetchRows, useAsync } from "@/lib/db";
 import { lastMonths, todayISO } from "@/lib/dates";
 import {
   CERT_STATUS,
@@ -16,25 +19,9 @@ import {
   LAB_DIFFICULTY_LABEL,
 } from "@/lib/types";
 
-export const metadata = { title: "Relatórios — Cyber Learning Hub" };
-
-const EXPORT_LINKS = [
-  { tipo: "cursos", label: "Cursos" },
-  { tipo: "certificacoes", label: "Certificações" },
-  { tipo: "laboratorios", label: "Laboratórios" },
-  { tipo: "sessoes", label: "Sessões de estudo" },
-];
-
-export default function Page() {
-  return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <ModuleHeader title="Relatórios" description="Relatórios de desempenho e histórico." />
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
-        <Content />
-      </Suspense>
-    </div>
-  );
-}
+type Status = { status: string };
+type LabRow = { difficulty: string; status: string };
+type SessionRow = { studied_on: string; minutes: number };
 
 function Breakdown({ title, rows }: { title: string; rows: { label: string; value: number }[] }) {
   const total = rows.reduce((s, r) => s + r.value, 0);
@@ -66,25 +53,52 @@ function Breakdown({ title, rows }: { title: string; rows: { label: string; valu
   );
 }
 
-async function Content() {
-  const session = await getSession();
-  if (!session) return <NeedsLogin />;
+export default function Page() {
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <ModuleHeader title="Relatórios" description="Relatórios de desempenho e histórico." />
+      <Content />
+    </div>
+  );
+}
 
-  const { supabase } = session;
-  const [courses, certs, labs, sessions] = await Promise.all([
-    supabase.from("courses").select("status"),
-    supabase.from("certifications").select("status"),
-    supabase.from("labs").select("difficulty,status"),
-    supabase.from("study_sessions").select("studied_on,minutes"),
-  ]);
-  if (courses.error || certs.error || labs.error || sessions.error) return <LoadError />;
+function Content() {
+  const [exporting, setExporting] = useState<ExportKey | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  const today = todayISO();
-  const months = lastMonths(today, 6);
+  const { data, error } = useAsync(async () => {
+    const [courses, certs, labs, sessions] = await Promise.all([
+      fetchRows<Status>("courses", "status", null),
+      fetchRows<Status>("certifications", "status", null),
+      fetchRows<LabRow>("labs", "difficulty,status", null),
+      fetchRows<SessionRow>("study_sessions", "studied_on,minutes", null),
+    ]);
+    return { courses, certs, labs, sessions };
+  });
+
+  async function exportCsv(key: ExportKey) {
+    setExporting(key);
+    setExportError(null);
+    try {
+      const cfg = EXPORTS[key];
+      const rows = await fetchRows<Record<string, unknown>>(cfg.table, cfg.columns.join(","), null);
+      downloadText(`${key}.csv`, toCsv(cfg.columns, rows));
+    } catch {
+      setExportError("Não foi possível gerar o arquivo. Tente novamente.");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  if (error) return <LoadError detail={error} />;
+  if (!data) return <Loading />;
+
+  const { courses, certs, labs, sessions } = data;
+  const months = lastMonths(todayISO(), 6);
   const minutesByMonth = new Map<string, number>();
-  let totalMinutes = 0;
   const studyDays = new Set<string>();
-  for (const s of sessions.data ?? []) {
+  let totalMinutes = 0;
+  for (const s of sessions) {
     totalMinutes += s.minutes;
     studyDays.add(s.studied_on);
     const key = s.studied_on.slice(0, 7);
@@ -101,11 +115,8 @@ async function Content() {
     { label: "Horas estudadas (total)", value: Math.round((totalMinutes / 60) * 10) / 10 },
     { label: "Horas nos últimos 6 meses", value: Math.round(last6Hours * 10) / 10 },
     { label: "Dias com estudo", value: studyDays.size },
-    { label: "Sessões registradas", value: (sessions.data ?? []).length },
+    { label: "Sessões registradas", value: sessions.length },
   ];
-
-  const countBy = <T extends Record<string, unknown>>(rows: T[], field: keyof T, value: string) =>
-    rows.filter((r) => r[field] === value).length;
 
   return (
     <>
@@ -124,17 +135,17 @@ async function Content() {
       <section className="grid gap-4 md:grid-cols-3">
         <Breakdown
           title="Cursos por status"
-          rows={COURSE_STATUS.map((s) => ({ label: COURSE_STATUS_LABEL[s], value: countBy(courses.data ?? [], "status", s) }))}
+          rows={COURSE_STATUS.map((s) => ({ label: COURSE_STATUS_LABEL[s], value: courses.filter((c) => c.status === s).length }))}
         />
         <Breakdown
           title="Certificações por status"
-          rows={CERT_STATUS.map((s) => ({ label: CERT_STATUS_LABEL[s], value: countBy(certs.data ?? [], "status", s) }))}
+          rows={CERT_STATUS.map((s) => ({ label: CERT_STATUS_LABEL[s], value: certs.filter((c) => c.status === s).length }))}
         />
         <Breakdown
           title="Laboratórios concluídos por dificuldade"
           rows={LAB_DIFFICULTY.map((d) => ({
             label: LAB_DIFFICULTY_LABEL[d],
-            value: (labs.data ?? []).filter((l) => l.difficulty === d && l.status === "concluido").length,
+            value: labs.filter((l) => l.difficulty === d && l.status === "concluido").length,
           }))}
         />
       </section>
@@ -144,14 +155,19 @@ async function Content() {
           <CardTitle className="text-foreground">Exportar dados (CSV)</CardTitle>
           <CardDescription>Abre no Excel ou Google Planilhas.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          {EXPORT_LINKS.map((e) => (
-            <Button key={e.tipo} asChild variant="outline">
-              <a href={`/relatorios/export?tipo=${e.tipo}`} download>
-                <Download /> {e.label}
-              </a>
-            </Button>
-          ))}
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-3">
+            {(Object.keys(EXPORTS) as ExportKey[]).map((key) => (
+              <Button key={key} type="button" variant="outline" disabled={exporting !== null} onClick={() => exportCsv(key)}>
+                <Download /> {exporting === key ? "Gerando…" : EXPORTS[key].label}
+              </Button>
+            ))}
+          </div>
+          {exportError && (
+            <p role="alert" className="text-sm text-destructive">
+              {exportError}
+            </p>
+          )}
         </CardContent>
       </Card>
     </>

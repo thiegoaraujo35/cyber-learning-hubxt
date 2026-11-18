@@ -1,72 +1,72 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { z } from "zod";
 import { ArrowLeft, Check, Circle, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteButton } from "@/components/crud/delete-button";
-import { LoadError, NeedsLogin } from "@/components/crud/module-shell";
+import { Loading, LoadError } from "@/components/crud/module-shell";
 import { ResourceForm, type Field } from "@/components/crud/resource-form";
-import { getSession } from "@/lib/data";
+import { fetchRows, insertRow, removeRow, useAsync } from "@/lib/db";
 import { formatDate } from "@/lib/dates";
 import { loadPathData, pathProgress } from "@/lib/paths";
+import { pathItemSchema } from "@/lib/schemas";
+import { getSupabase } from "@/lib/supabase/client";
 import {
   PATH_ITEM_KIND_LABEL,
   PATH_STATUS_LABEL,
   PATH_STATUS_TONE,
   type LearningPath,
 } from "@/lib/types";
-import { z } from "zod";
-import { addPathItem, removePathItem } from "../actions";
 
-export const metadata = { title: "Trilha — Cyber Learning Hub" };
+const addSchema = pathItemSchema.pick({ item: true });
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
+export default function Page() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Link href="/learning-paths" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Todas as trilhas
       </Link>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
-        <Content params={params} />
+      <Suspense fallback={<Loading />}>
+        <FromQuery />
       </Suspense>
     </div>
   );
 }
 
-async function Content({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!z.uuid().safeParse(id).success) notFound();
+function FromQuery() {
+  const id = useSearchParams().get("id") ?? "";
+  if (!z.uuid().safeParse(id).success) {
+    return <p className="text-sm text-muted-foreground">Trilha não encontrada.</p>;
+  }
+  return <Detail key={id} id={id} />;
+}
 
-  const session = await getSession();
-  if (!session) return <NeedsLogin />;
+function Detail({ id }: { id: string }) {
+  const { data, error, reload } = useAsync(async () => {
+    const [paths, pathData] = await Promise.all([
+      fetchRows<LearningPath>("learning_paths", "id,title,description,target_date,status", null),
+      loadPathData(getSupabase()),
+    ]);
+    return { path: paths.find((p) => p.id === id) ?? null, pathData };
+  });
 
-  const [pathRes, data] = await Promise.all([
-    session.supabase
-      .from("learning_paths")
-      .select("id,title,description,target_date,status")
-      .eq("id", id)
-      .maybeSingle(),
-    loadPathData(session.supabase),
-  ]);
-  if (pathRes.error || !data) return <LoadError />;
-  if (!pathRes.data) notFound();
+  if (error) return <LoadError detail={error} />;
+  if (!data) return <Loading />;
+  if (!data.path || !data.pathData) {
+    return <p className="text-sm text-muted-foreground">Trilha não encontrada.</p>;
+  }
 
-  const path = pathRes.data as LearningPath;
-  const items = data.items.filter((i) => i.path_id === id);
+  const { path, pathData } = data;
+  const items = pathData.items.filter((i) => i.path_id === id);
   const prog = pathProgress(items);
   const used = new Set(items.map((i) => `${i.kind}:${i.ref_id}`));
-  const available = data.candidates.filter((c) => !used.has(c.value));
+  const available = pathData.candidates.filter((c) => !used.has(c.value));
 
-  const fields: Field[] = [
-    {
-      name: "item",
-      label: "Adicionar à trilha",
-      type: "select",
-      wide: true,
-      options: available.length > 0 ? available : [{ value: "", label: "Nada disponível — cadastre cursos, certificações ou laboratórios" }],
-    },
-  ];
+  const fields: Field[] = [{ name: "item", label: "Adicionar à trilha", type: "select", wide: true, options: available }];
 
   return (
     <>
@@ -96,8 +96,8 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
         <CardHeader>
           <CardTitle className="text-foreground">Itens da trilha</CardTitle>
           <CardDescription>
-            O item conta como concluído quando o curso/laboratório está concluído ou a certificação
-            está conquistada.
+            O item conta como concluído quando o curso/laboratório está concluído ou a certificação está
+            conquistada.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,7 +124,13 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                     <Link href={it.href} aria-label="Abrir item" className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground">
                       <ExternalLink className="size-4" />
                     </Link>
-                    <DeleteButton id={it.id} action={removePathItem} confirmText="Remover este item da trilha? (o curso/certificação/laboratório continua cadastrado)" />
+                    <DeleteButton
+                      confirmText="Remover este item da trilha? (o curso/certificação/laboratório continua cadastrado)"
+                      onDelete={async () => {
+                        await removeRow("path_items", it.id);
+                        reload();
+                      }}
+                    />
                   </div>
                 </li>
               ))}
@@ -135,24 +141,27 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
       <Card>
         <CardContent className="p-5">
-          <ResourceFormWithPath fields={fields} pathId={id} disabled={available.length === 0} />
+          {available.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Todos os seus cursos, certificações e laboratórios já estão nesta trilha (ou ainda não há nenhum
+              cadastrado).
+            </p>
+          ) : (
+            <ResourceForm
+              key={items.length}
+              fields={fields}
+              schema={addSchema}
+              submitLabel="Adicionar"
+              onSave={async (d) => {
+                const [kind, ref_id] = d.item.split(":");
+                const err = await insertRow("path_items", { path_id: id, kind, ref_id });
+                if (err) return { error: err };
+                reload();
+              }}
+            />
+          )}
         </CardContent>
       </Card>
     </>
-  );
-}
-
-/** Formulário de adicionar item: injeta o path_id como campo oculto. */
-function ResourceFormWithPath({ fields, pathId, disabled }: { fields: Field[]; pathId: string; disabled: boolean }) {
-  if (disabled) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Todos os seus cursos, certificações e laboratórios já estão nesta trilha (ou ainda não há
-        nenhum cadastrado).
-      </p>
-    );
-  }
-  return (
-    <ResourceForm fields={fields} action={addPathItem} submitLabel="Adicionar" hiddenFields={{ path_id: pathId }} />
   );
 }

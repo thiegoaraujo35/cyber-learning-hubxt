@@ -1,50 +1,66 @@
 # Cyber Learning Hub
 
-Plataforma pessoal de gestão de aprendizagem em Cybersecurity (Next.js 16 + Supabase).
+Painel pessoal de aprendizagem em Cybersecurity: cursos, certificações, laboratórios, trilhas,
+biblioteca, metas e relatórios.
 
-## Início rápido (Windows)
-Dois cliques em **`iniciar.cmd`**: instala, configura o `.env.local`, sobe o Supabase local se o Docker Desktop estiver aberto e abre http://localhost:3000. Sem Docker, abre em *modo visualização* (sem login, só em `npm run dev`).
+- **Site estático** (Next.js exportado) publicado no **GitHub Pages**.
+- **Dados** no **Supabase** (nuvem, plano gratuito), protegidos por login + RLS.
+- **Sem Docker** e sem servidor próprio.
 
-## Rodar manualmente
-Requisitos: Node.js 20+; Docker (apenas para o Supabase local).
+## Como a segurança funciona (repositório público, dados privados)
+
+| Camada | O que faz |
+|---|---|
+| Repositório | Só código. Nenhuma senha/chave de serviço dentro. O `.env.local` é ignorado pelo Git. |
+| Login | Só existe **um** usuário (o seu). Cadastro público desativado. |
+| Trava no banco | Um *trigger* impede criar qualquer segundo usuário, mesmo que o cadastro seja reativado. |
+| RLS | Toda tabela só devolve linhas com `user_id = auth.uid()`. Sem login, o banco não devolve nada. |
+| Chave `anon` | É pública por definição (vai no site). Sem login ela não acessa nenhuma tabela. |
+
+Quem abrir o link do site só vê a tela de login.
+
+## Publicar (uma vez)
+
+### 1. Supabase (nuvem)
+1. Crie um projeto em <https://supabase.com> (gratuito).
+2. **SQL Editor**: rode, nesta ordem, o conteúdo de cada arquivo em `supabase/migrations/`:
+   1. `20261117000000_etapa_2_nucleo.sql`
+   2. `20261117010000_etapas_3_a_5.sql`
+3. **Authentication → Users → Add user → Create new user**: seu e-mail + uma senha forte
+   (marque *Auto Confirm User*).
+4. Rode o terceiro arquivo: `20261117020000_travar_acesso_so_para_voce.sql`.
+5. **Authentication → Sign In / Providers**: desative **Allow new users to sign up**.
+6. (Recomendado) ative MFA/TOTP em **Authentication → Multi-Factor**.
+7. **Project Settings → API**: anote a **Project URL** e a chave **anon public**.
+
+### 2. GitHub
+1. Crie um repositório **novo** (pode ser público) e envie este projeto.
+2. **Settings → Secrets and variables → Actions → aba Variables → New repository variable**:
+   - `SUPABASE_URL` = a Project URL
+   - `SUPABASE_ANON_KEY` = a chave anon public
+3. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+4. Faça um push na branch `main` (ou rode o workflow em *Actions*). Em 1–2 minutos o site abre em
+   `https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/`.
+
+### 3. Supabase: endereço do site
+Em **Authentication → URL Configuration**, coloque o endereço acima em **Site URL**.
+
+## Rodar no seu computador (opcional)
+Requisitos: Node.js 20+.
 
 ```bash
-# Linux/macOS/WSL                 # Windows (CMD ou PowerShell)
-./scripts/setup.sh                scripts\setup.cmd
-```
-Depois:
-```bash
-npx supabase start     # exibe API URL e anon key -> cole em .env.local
-npm run dev            # http://localhost:3000
-```
-No Windows, o `setup.cmd` já contorna o erro "não está assinado digitalmente" do PowerShell.
-Sem Supabase configurado o app abre, mas login/cadastro avisam que falta configuração.
-
-## Publicar no GitHub
-```bash
-git remote add origin https://github.com/SEU_USUARIO/cyber-learning-hub.git
-git push -u origin main
+cp .env.example .env.local   # preencha com a URL e a chave anon do seu projeto Supabase
+npm install
+npm run dev                  # http://localhost:3000
 ```
 
-## Estado
-- **Etapa 1** — estrutura, tema escuro, menu lateral, autenticação (Supabase Auth) e dashboard.
-- **Etapa 2** — banco de dados + cadastros: **Meus cursos**, **Certificações**, **Laboratórios**,
-  **Metas e planejamento** (com cronograma) e registro de **sessões de estudo**. O dashboard passa a
-  ler dados reais (cursos, horas, certificações, laboratórios, gráfico semanal e histórico).
-- **Etapa 3** — **Minhas plataformas** (cadastro manual, sem senhas/tokens), cursos ligados a uma
-  plataforma, progresso por **aulas concluídas** (botão "+1 aula") e **importação de cursos por link**.
-- **Etapa 4** — **Learning Paths** (trilhas com cursos, certificações e laboratórios; progresso
-  calculado) e **Biblioteca** de materiais com tipos e tags.
-- **Etapa 5** — **Relatórios** (horas por mês, distribuição por status, exportação CSV) e
-  **Configurações** (nome, meta semanal, troca de senha).
+## O que tem
+- **Dashboard** com indicadores, gráfico semanal (com meta) e registro de sessões de estudo.
+- **Meus cursos** (progresso por aulas, importação por link), **Certificações**, **Laboratórios**.
+- **Minhas plataformas** (cadastro manual, sem senhas), **Learning Paths**, **Biblioteca**.
+- **Metas e planejamento** (cronograma), **Relatórios** (gráficos + exportação CSV) e **Configurações**.
 
-### Aplicar as migrations (Etapas 2–5)
-```bash
-npx supabase start        # sobe o Postgres local (Docker)
-npx supabase db reset     # aplica supabase/migrations/*.sql
-```
-Na nuvem: `npx supabase link --project-ref <ref>` e `npx supabase db push`.
-Todas as tabelas têm RLS: cada usuário só vê e altera os próprios dados.
-
-## Problemas comuns (Windows)
-- **"swc ... is not a valid Win32 application"**: o binário nativo do Next veio corrompido. O `npm run dev` já usa webpack e funciona mesmo assim. Para corrigir de vez: apague `node_modules` e `.next`, rode `npm cache verify` e `npm install`. Para tentar o modo rápido: `npm run dev:turbo`.
+## Observações
+- Se precisar recriar o seu usuário um dia, apague o trigger antes:
+  `drop trigger bloquear_novos_usuarios on auth.users;` e rode o arquivo 3 de novo depois.
+- O progresso de cursos externos (Udemy etc.) é registrado por você; não há integração por API.

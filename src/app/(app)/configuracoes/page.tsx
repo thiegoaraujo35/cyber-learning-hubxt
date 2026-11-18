@@ -1,11 +1,11 @@
-import { Suspense } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadError, ModuleHeader, NeedsLogin } from "@/components/crud/module-shell";
-import { ResourceForm, type Field } from "@/components/crud/resource-form";
-import { getSession } from "@/lib/data";
-import { changePassword, saveSettings } from "./actions";
+"use client";
 
-export const metadata = { title: "Configurações — Cyber Learning Hub" };
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loading, LoadError, ModuleHeader } from "@/components/crud/module-shell";
+import { ResourceForm, type Field } from "@/components/crud/resource-form";
+import { useAsync } from "@/lib/db";
+import { passwordSchema, settingsSchema } from "@/lib/schemas";
+import { getSupabase } from "@/lib/supabase/client";
 
 const SETTINGS_FIELDS: Field[] = [
   { name: "display_name", label: "Nome de exibição", type: "text", placeholder: "Como você quer ser chamado" },
@@ -18,54 +18,73 @@ const PASSWORD_FIELDS: Field[] = [
 ];
 
 export default function Page() {
+  const { data, error } = useAsync(async () => {
+    const supabase = getSupabase();
+    const [{ data: userData }, { data: settings, error: settingsError }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("user_settings").select("display_name,weekly_goal_hours").maybeSingle(),
+    ]);
+    if (settingsError) throw new Error(settingsError.message);
+    return { user: userData.user, settings };
+  });
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <ModuleHeader title="Configurações" description="Preferências da conta e do sistema." />
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando…</p>}>
-        <Content />
-      </Suspense>
+      {error ? (
+        <LoadError detail={error} />
+      ) : !data ? (
+        <Loading />
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Preferências</CardTitle>
+              <CardDescription>
+                Conta: {data.user?.email}. A meta semanal aparece no gráfico do dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResourceForm
+                fields={SETTINGS_FIELDS}
+                schema={settingsSchema}
+                values={data.settings ?? { weekly_goal_hours: 5 }}
+                submitLabel="Salvar preferências"
+                onSave={async (d) => {
+                  const supabase = getSupabase();
+                  const { data: u } = await supabase.auth.getUser();
+                  if (!u.user) return { error: "Sessão expirada. Entre novamente." };
+                  const { error: err } = await supabase
+                    .from("user_settings")
+                    .upsert({ user_id: u.user.id, ...d }, { onConflict: "user_id" });
+                  if (err) return { error: "Não foi possível salvar. Tente novamente." };
+                  return { message: "Configurações salvas." };
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Alterar senha</CardTitle>
+              <CardDescription>A senha é gerenciada pelo Supabase Auth; nada é guardado no app.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResourceForm
+                fields={PASSWORD_FIELDS}
+                schema={passwordSchema}
+                submitLabel="Alterar senha"
+                resetOnSuccess
+                onSave={async (d) => {
+                  const { error: err } = await getSupabase().auth.updateUser({ password: d.new_password });
+                  if (err) return { error: "Não foi possível alterar a senha. Tente novamente." };
+                  return { message: "Senha alterada." };
+                }}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
-  );
-}
-
-async function Content() {
-  const session = await getSession();
-  if (!session) return <NeedsLogin />;
-
-  const { data, error } = await session.supabase
-    .from("user_settings")
-    .select("display_name,weekly_goal_hours")
-    .maybeSingle();
-  if (error) return <LoadError />;
-
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-foreground">Preferências</CardTitle>
-          <CardDescription>
-            Conta: {session.user.email}. A meta semanal aparece no gráfico do dashboard.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResourceForm
-            fields={SETTINGS_FIELDS}
-            action={saveSettings}
-            values={data ?? { weekly_goal_hours: 5 }}
-            submitLabel="Salvar preferências"
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-foreground">Alterar senha</CardTitle>
-          <CardDescription>A senha é gerenciada pelo Supabase Auth; nada é guardado no app.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResourceForm fields={PASSWORD_FIELDS} action={changePassword} submitLabel="Alterar senha" />
-        </CardContent>
-      </Card>
-    </>
   );
 }

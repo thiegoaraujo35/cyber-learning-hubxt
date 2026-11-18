@@ -5,11 +5,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Cyber Learning Hub",
-  description:
-    "Plataforma pessoal de gestão de aprendizagem em Cybersecurity: cursos, certificações, laboratórios e trilhas.",
+  description: "Plataforma pessoal de gestão de aprendizagem em Cybersecurity.",
+  // Site pessoal: pede para buscadores não indexarem.
+  robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="pt-BR"

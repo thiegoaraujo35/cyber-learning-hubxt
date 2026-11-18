@@ -1,34 +1,46 @@
+"use client";
+
 import Link from "next/link";
-import { Suspense } from "react";
 import { ArrowRight, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { NeedsLogin } from "@/components/crud/module-shell";
+import { Loading, LoadError } from "@/components/crud/module-shell";
 import { ResourceForm, type Field } from "@/components/crud/resource-form";
 import { HistoryList, type HistoryItem } from "@/components/dashboard/history-list";
 import { StatStrip, type Stat } from "@/components/dashboard/stat-strip";
 import { WeeklyChart, type WeeklyPoint } from "@/components/dashboard/weekly-chart";
-import { getSession } from "@/lib/data";
+import { fetchRows, insertRow, removeRow, useAsync } from "@/lib/db";
 import { todayISO, weekDays } from "@/lib/dates";
-import { deleteSession, saveSession } from "./actions";
-
-export const metadata = { title: "Dashboard — Cyber Learning Hub" };
+import { sessionSchema } from "@/lib/schemas";
+import { getSupabase } from "@/lib/supabase/client";
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const chips = ["Next.js", "Supabase", "PostgreSQL", "Recharts", "Vercel"];
+const chips = ["Next.js", "Supabase", "PostgreSQL", "Recharts", "GitHub Pages"];
 
-const EMPTY_STATS: Stat[] = [
-  "Total de cursos",
-  "Cursos em andamento",
-  "Cursos concluídos",
-  "Horas estudadas",
-  "Certificações conquistadas",
-  "Certificações planejadas",
-  "Laboratórios concluídos",
-  "Trilhas ativas",
-].map((label) => ({ label, value: 0 }));
+type Status = { status: string };
+type CourseRef = { id: string; title: string; status: string };
+type SessionRow = { id: string; course_id: string | null; studied_on: string; minutes: number; note: string | null };
 
-const EMPTY_WEEK: WeeklyPoint[] = DAY_LABELS.map((day) => ({ day, hours: 0 }));
+async function loadDashboard() {
+  const [courses, certs, labs, sessions, paths] = await Promise.all([
+    fetchRows<CourseRef>("courses", "id,title,status", null),
+    fetchRows<Status>("certifications", "status", null),
+    fetchRows<Status>("labs", "status", null),
+    fetchRows<SessionRow>("study_sessions", "id,course_id,studied_on,minutes,note", {
+      column: "studied_on",
+      ascending: false,
+    }),
+    fetchRows<Status>("learning_paths", "status", null),
+  ]);
+  const { data: settings, error } = await getSupabase()
+    .from("user_settings")
+    .select("weekly_goal_hours")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return { courses, certs, labs, sessions, paths, weeklyGoal: settings ? Number(settings.weekly_goal_hours) : null };
+}
+
+const count = (rows: Status[], ...statuses: string[]) => rows.filter((r) => statuses.includes(r.status)).length;
 
 export default function DashboardPage() {
   return (
@@ -43,8 +55,7 @@ export default function DashboardPage() {
           <span className="text-gradient">Evolua todo dia.</span>
         </h1>
         <p className="max-w-xl text-muted-foreground">
-          Centralize cursos, certificações, laboratórios e trilhas de aprendizagem em um único
-          painel pessoal.
+          Centralize cursos, certificações, laboratórios e trilhas de aprendizagem em um único painel pessoal.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild size="lg">
@@ -70,84 +81,42 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando indicadores…</p>}>
-        <DashboardData />
-      </Suspense>
+      <DashboardData />
     </div>
   );
 }
 
-async function DashboardData() {
-  const session = await getSession();
+function DashboardData() {
+  const { data, error, reload } = useAsync(loadDashboard);
 
-  if (!session) {
-    return (
-      <>
-        <NeedsLogin />
-        <Panels stats={EMPTY_STATS} weekly={EMPTY_WEEK} weekSummary={null} history={[]} studyForm={null} />
-      </>
-    );
-  }
+  if (error) return <LoadError detail={error} />;
+  if (!data) return <Loading />;
 
-  const { supabase } = session;
-  const [courses, certs, labs, sessions, paths, settings] = await Promise.all([
-    supabase.from("courses").select("id,title,status"),
-    supabase.from("certifications").select("status"),
-    supabase.from("labs").select("status"),
-    supabase
-      .from("study_sessions")
-      .select("id,course_id,studied_on,minutes,note")
-      .order("studied_on", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase.from("learning_paths").select("status"),
-    supabase.from("user_settings").select("weekly_goal_hours").maybeSingle(),
-  ]);
-
-  if (courses.error || certs.error || labs.error || sessions.error || paths.error || settings.error) {
-    return (
-      <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-4 text-sm text-destructive">
-        Não foi possível carregar os indicadores. Confira se a migration da Etapa 2 foi aplicada
-        (<code>npx supabase db reset</code>).
-      </div>
-    );
-  }
-
-  const courseRows = courses.data ?? [];
-  const certRows = certs.data ?? [];
-  const labRows = labs.data ?? [];
-  const sessionRows = sessions.data ?? [];
-
-  const count = <T extends { status: string }>(rows: T[], ...statuses: string[]) =>
-    rows.filter((r) => statuses.includes(r.status)).length;
-
-  const totalMinutes = sessionRows.reduce((sum, s) => sum + s.minutes, 0);
+  const { courses, certs, labs, sessions, paths, weeklyGoal } = data;
+  const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0);
 
   const stats: Stat[] = [
-    { label: "Total de cursos", value: courseRows.length },
-    { label: "Cursos em andamento", value: count(courseRows, "em_andamento") },
-    { label: "Cursos concluídos", value: count(courseRows, "concluido") },
+    { label: "Total de cursos", value: courses.length },
+    { label: "Cursos em andamento", value: count(courses, "em_andamento") },
+    { label: "Cursos concluídos", value: count(courses, "concluido") },
     { label: "Horas estudadas", value: Math.round((totalMinutes / 60) * 10) / 10 },
-    { label: "Certificações conquistadas", value: count(certRows, "conquistada") },
-    { label: "Certificações planejadas", value: count(certRows, "planejada", "estudando", "agendada") },
-    { label: "Laboratórios concluídos", value: count(labRows, "concluido") },
-    { label: "Trilhas ativas", value: count(paths.data ?? [], "ativa") },
+    { label: "Certificações conquistadas", value: count(certs, "conquistada") },
+    { label: "Certificações planejadas", value: count(certs, "planejada", "estudando", "agendada") },
+    { label: "Laboratórios concluídos", value: count(labs, "concluido") },
+    { label: "Trilhas ativas", value: count(paths, "ativa") },
   ];
 
   const today = todayISO();
   const minutesByDay = new Map<string, number>();
-  for (const s of sessionRows) {
-    minutesByDay.set(s.studied_on, (minutesByDay.get(s.studied_on) ?? 0) + s.minutes);
-  }
+  for (const s of sessions) minutesByDay.set(s.studied_on, (minutesByDay.get(s.studied_on) ?? 0) + s.minutes);
   const weekly: WeeklyPoint[] = weekDays(today).map((date, i) => ({
     day: DAY_LABELS[i],
     hours: Math.round(((minutesByDay.get(date) ?? 0) / 60) * 10) / 10,
   }));
-
   const weekHours = Math.round(weekly.reduce((sum, w) => sum + w.hours, 0) * 10) / 10;
-  const weeklyGoal = settings.data ? Number(settings.data.weekly_goal_hours) : null;
 
-  const titleById = new Map(courseRows.map((c) => [c.id, c.title]));
-  const history: HistoryItem[] = sessionRows.slice(0, 8).map((s) => ({
+  const titleById = new Map(courses.map((c) => [c.id, c.title]));
+  const history: HistoryItem[] = sessions.slice(0, 8).map((s) => ({
     id: s.id,
     studied_on: s.studied_on,
     minutes: s.minutes,
@@ -165,49 +134,23 @@ async function DashboardData() {
       wide: true,
       options: [
         { value: "", label: "Estudo livre (sem curso)" },
-        ...courseRows.map((c) => ({ value: c.id, label: c.title })),
+        ...courses.map((c) => ({ value: c.id, label: c.title })),
       ],
     },
     { name: "note", label: "Anotação (opcional)", type: "text", wide: true, placeholder: "O que você estudou?" },
   ];
 
-  const nothingYet =
-    courseRows.length + certRows.length + labRows.length + sessionRows.length === 0;
+  const nothingYet = courses.length + certs.length + labs.length + sessions.length === 0;
 
   return (
     <>
       {nothingYet && (
         <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Nenhum dado registrado ainda. Cadastre cursos, certificações e laboratórios — ou registre
-          uma sessão de estudo abaixo — e os indicadores aparecem aqui.
+          Nenhum dado registrado ainda. Cadastre cursos, certificações e laboratórios — ou registre uma sessão
+          de estudo abaixo — e os indicadores aparecem aqui.
         </p>
       )}
-      <Panels
-        stats={stats}
-        weekly={weekly}
-        weekSummary={weeklyGoal !== null ? `Meta semanal: ${weekHours} h de ${weeklyGoal} h.` : null}
-        history={history}
-        studyForm={<ResourceForm fields={studyFields} action={saveSession} values={{ studied_on: today }} submitLabel="Registrar estudo" />}
-      />
-    </>
-  );
-}
 
-function Panels({
-  stats,
-  weekly,
-  weekSummary,
-  history,
-  studyForm,
-}: {
-  stats: Stat[];
-  weekly: WeeklyPoint[];
-  weekSummary: string | null;
-  history: HistoryItem[];
-  studyForm: React.ReactNode;
-}) {
-  return (
-    <>
       <StatStrip stats={stats} />
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -215,7 +158,8 @@ function Panels({
           <CardHeader>
             <CardTitle className="text-foreground">Progresso semanal</CardTitle>
             <CardDescription>
-              Horas de estudo por dia da semana atual.{weekSummary ? ` ${weekSummary}` : ""}
+              Horas de estudo por dia da semana atual.
+              {weeklyGoal !== null ? ` Meta semanal: ${weekHours} h de ${weeklyGoal} h.` : ""}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -229,20 +173,37 @@ function Panels({
             <CardDescription>Últimas atividades registradas.</CardDescription>
           </CardHeader>
           <CardContent>
-            <HistoryList items={history} deleteAction={deleteSession} />
+            <HistoryList
+              items={history}
+              onDelete={async (id) => {
+                await removeRow("study_sessions", id);
+                reload();
+              }}
+            />
           </CardContent>
         </Card>
       </section>
 
-      {studyForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-foreground">Registrar sessão de estudo</CardTitle>
-            <CardDescription>Alimenta as horas estudadas, o gráfico semanal e o histórico.</CardDescription>
-          </CardHeader>
-          <CardContent>{studyForm}</CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-foreground">Registrar sessão de estudo</CardTitle>
+          <CardDescription>Alimenta as horas estudadas, o gráfico semanal e o histórico.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResourceForm
+            fields={studyFields}
+            schema={sessionSchema}
+            values={{ studied_on: today }}
+            submitLabel="Registrar estudo"
+            onSave={async (d) => {
+              const err = await insertRow("study_sessions", d);
+              if (err) return { error: err };
+              reload();
+              return { message: "Sessão registrada." };
+            }}
+          />
+        </CardContent>
+      </Card>
     </>
   );
 }

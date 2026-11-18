@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ExternalLink, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { DeleteButton } from "@/components/crud/delete-button";
 import type { BadgeTone } from "@/lib/types";
 
 type Props = {
-  id: string;
   title: string;
   subtitle?: string | null;
   badges?: { label: string; tone: BadgeTone }[];
@@ -16,13 +14,13 @@ type Props = {
   progress?: number;
   url?: { href: string; label: string } | null;
   notes?: string | null;
-  editHref: string;
-  deleteAction: (formData: FormData) => Promise<void>;
+  onEdit: () => void;
+  onDelete: () => void | Promise<void>;
   /** Conteúdo extra no rodapé (ex.: botão de ação rápida). */
   extra?: React.ReactNode;
 };
 
-export function ResourceItem({ id, title, subtitle, badges, meta, progress, url, notes, editHref, deleteAction, extra }: Props) {
+export function ResourceItem({ title, subtitle, badges, meta, progress, url, notes, onEdit, onDelete, extra }: Props) {
   const metaLines = (meta ?? []).filter(Boolean) as string[];
   return (
     <Card className="flex flex-col gap-3 p-5">
@@ -32,12 +30,10 @@ export function ResourceItem({ id, title, subtitle, badges, meta, progress, url,
           {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
         </div>
         <div className="flex shrink-0 items-center">
-          <Button asChild variant="ghost" size="sm" aria-label="Editar">
-            <Link href={editHref} scroll={false}>
-              <Pencil />
-            </Link>
+          <Button type="button" variant="ghost" size="sm" aria-label="Editar" onClick={onEdit}>
+            <Pencil />
           </Button>
-          <DeleteButton id={id} action={deleteAction} />
+          <DeleteButton onDelete={onDelete} />
         </div>
       </div>
 

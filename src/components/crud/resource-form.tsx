@@ -1,55 +1,95 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, type FormEvent } from "react";
+import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { FormState } from "@/lib/crud";
 
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "url" | "date" | "number" | "password" | "textarea" | "select";
+  type: "text" | "url" | "date" | "number" | "password" | "email" | "textarea" | "select";
   options?: { value: string; label: string }[];
   required?: boolean;
   placeholder?: string;
   min?: number;
   max?: number;
   step?: number;
+  autoComplete?: string;
   /** Ocupa a linha inteira (2 colunas). */
   wide?: boolean;
 };
 
-type Props = {
+export type FormResult = { error?: string; message?: string } | void;
+
+type Values = Record<string, string | number | null | undefined>;
+
+type Props<S extends z.ZodType> = {
   fields: Field[];
-  action: (state: FormState, formData: FormData) => Promise<FormState>;
-  /** Valores iniciais (edição) — chaves = name dos campos; `id` vira campo oculto. */
-  values?: Record<string, string | number | null | undefined>;
+  schema: S;
+  /** Recebe os dados já validados. Retorne { error } para mostrar uma falha. */
+  onSave: (data: z.output<S>) => Promise<FormResult>;
+  values?: Values;
   submitLabel?: string;
-  cancelHref?: string;
-  /** Campos ocultos fixos enviados junto (ex.: id da trilha). */
-  hiddenFields?: Record<string, string>;
+  onCancel?: () => void;
+  resetOnSuccess?: boolean;
 };
 
-export function ResourceForm({ fields, action, values, submitLabel = "Salvar", cancelHref, hiddenFields }: Props) {
-  const [state, formAction, pending] = useActionState(action, {} as FormState);
+export function ResourceForm<S extends z.ZodType>({
+  fields,
+  schema,
+  onSave,
+  values,
+  submitLabel = "Salvar",
+  onCancel,
+  resetOnSuccess = false,
+}: Props<S>) {
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setError(null);
+    setMessage(null);
+
+    const parsed = schema.safeParse(Object.fromEntries(new FormData(form)));
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
+    setPending(true);
+    try {
+      const result = await onSave(parsed.data);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        if (result?.message) setMessage(result.message);
+        if (resetOnSuccess) form.reset();
+      }
+    } catch {
+      setError("Não foi possível salvar. Tente novamente.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
-      {values?.id ? <input type="hidden" name="id" value={String(values.id)} /> : null}
-      {hiddenFields &&
-        Object.entries(hiddenFields).map(([name, value]) => (
-          <input key={name} type="hidden" name={name} value={value} />
-        ))}
-
+    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
       {fields.map((f) => {
         const initial = values?.[f.name];
         const defaultValue = initial === null || initial === undefined ? "" : String(initial);
         const id = `field-${f.name}`;
         return (
-          <div key={f.name} className={f.wide || f.type === "textarea" ? "flex flex-col gap-1.5 sm:col-span-2" : "flex flex-col gap-1.5"}>
+          <div
+            key={f.name}
+            className={f.wide || f.type === "textarea" ? "flex flex-col gap-1.5 sm:col-span-2" : "flex flex-col gap-1.5"}
+          >
             <Label htmlFor={id}>{f.label}</Label>
             {f.type === "select" ? (
               <Select id={id} name={f.name} defaultValue={defaultValue || f.options?.[0]?.value} required={f.required}>
@@ -72,22 +112,21 @@ export function ResourceForm({ fields, action, values, submitLabel = "Salvar", c
                 min={f.min}
                 max={f.max}
                 step={f.step}
-                autoComplete={f.type === "password" ? "new-password" : undefined}
+                autoComplete={f.autoComplete ?? (f.type === "password" ? "new-password" : undefined)}
               />
             )}
           </div>
         );
       })}
 
-      {state.message && (
+      {message && (
         <p role="status" className="text-sm text-emerald-400 sm:col-span-2">
-          {state.message}
+          {message}
         </p>
       )}
-
-      {state.error && (
+      {error && (
         <p role="alert" className="text-sm text-destructive sm:col-span-2">
-          {state.error}
+          {error}
         </p>
       )}
 
@@ -95,9 +134,9 @@ export function ResourceForm({ fields, action, values, submitLabel = "Salvar", c
         <Button type="submit" disabled={pending}>
           {pending ? "Salvando…" : submitLabel}
         </Button>
-        {cancelHref && (
-          <Button asChild variant="outline">
-            <a href={cancelHref}>Cancelar</a>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
           </Button>
         )}
       </div>
