@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thiego Araújo — Cloud Security Analyst</title>
+<meta name="description" content="Thiego Araújo — Cloud Security Analyst. Cyber Security, Microsoft Azure, Vulnerability Management and Security Operations.">
+<meta property="og:title" content="Thiego Araújo — Cloud Security Analyst">
+<meta property="og:description" content="Cyber Security, Cloud Security, Microsoft Azure, Vulnerability Management, Security Operations.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230a0c10%22/><path d=%22M50 18 L78 30 V52 C78 70 66 82 50 88 C34 82 22 70 22 52 V30 Z%22 fill=%22none%22 stroke=%22%23ff6a3d%22 stroke-width=%226%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="container">
+    <a href="#top" class="brand"><span class="brand-mark">TA</span><span id="brand-name">Thiego Araújo</span></a>
+    <div class="nav-links" id="navLinks"></div>
+    <div class="nav-actions">
+      <div class="lang-toggle">
+        <button data-lang-btn="en" class="active">EN</button>
+        <button data-lang-btn="pt">PT</button>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div>
+        <div class="pill hero-kicker" id="hero-kicker"></div>
+        <h1 id="hero-headline"></h1>
+        <p class="subhead" id="hero-subhead"></p>
+        <div class="tag-row" id="hero-tags"></div>
+        <div class="cta-row">
+          <a href="#projects" class="btn btn-primary" id="cta-projects"></a>
+          <a href="#certifications" class="btn btn-ghost" id="cta-certifications"></a>
+          <a href="#" class="btn btn-ghost" id="cta-resume" target="_blank" rel="noopener"></a>
+        </div>
+        <div class="social-row">
+          <a href="#" id="link-linkedin" target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+          <a href="#" id="link-github" target="_blank" rel="noopener" aria-label="GitHub">gh</a>
+          <a href="#" id="link-email" aria-label="Email">@</a>
+        </div>
+      </div>
+
+      <div class="feed-panel reveal">
+        <div class="feed-head">
+          <div class="feed-title"><span class="live-dot"></span><span id="feed-label"></span></div>
+          <span class="demo-badge" id="feed-demo"></span>
+        </div>
+        <div id="feed-items"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats-strip" style="padding:0">
+    <div class="container" id="stats-strip"></div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="container about-grid">
+      <div class="section-head" style="margin-bottom:0">
+        <div class="section-kicker"><span class="dot"></span><span id="about-kicker"></span></div>
+        <h2 id="about-heading"></h2>
+      </div>
+      <div id="about-body"></div>
+    </div>
+  </section>
+
+  <!-- SPECIALTIES -->
+  <section id="specialties">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="spec-kicker"></span></div>
+        <h2 id="spec-heading"></h2>
+      </div>
+      <div class="grid-cards" id="spec-grid"></div>
+    </div>
+  </section>
+
+  <!-- CERTIFICATIONS -->
+  <section id="certifications">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="cert-kicker"></span></div>
+        <h2 id="cert-heading"></h2>
+      </div>
+      <div class="filter-row" id="cert-filters"></div>
+      <div class="cert-grid" id="cert-grid"></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENTS (transcript e outros; some se não houver nenhum anexado) -->
+  <section id="documents" style="display:none">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="docs-kicker"></span></div>
+        <h2 id="docs-heading"></h2>
+        <p id="docs-sub"></p>
+      </div>
+      <div class="doc-grid" id="doc-grid"></div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="proj-kicker"></span></div>
+        <h2 id="proj-heading"></h2>
+        <p id="proj-sub"></p>
+      </div>
+      <div class="grid-projects" id="proj-grid"></div>
+    </div>
+  </section>
+
+  <!-- CTEM METHODOLOGY -->
+  <section id="ctem">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="ctem-kicker"></span></div>
+        <h2 id="ctem-heading"></h2>
+        <p id="ctem-sub"></p>
+      </div>
+      <div class="ctem-flow" id="ctem-flow"></div>
+    </div>
+  </section>
+
+  <!-- LABS -->
+  <section id="labs">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="labs-kicker"></span></div>
+        <h2 id="labs-heading"></h2>
+      </div>
+      <div class="grid-labs" id="labs-grid"></div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section id="experience">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="exp-kicker"></span></div>
+        <h2 id="exp-heading"></h2>
+      </div>
+      <div class="timeline" id="exp-timeline"></div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section id="stack">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="stack-kicker"></span></div>
+        <h2 id="stack-heading"></h2>
+      </div>
+      <div class="stack-groups" id="stack-groups"></div>
+    </div>
+  </section>
+
+  <!-- SECURITY DASHBOARD -->
+  <section id="dashboard">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-kicker"><span class="dot"></span><span id="dash-kicker"></span></div>
+        <h2 id="dash-heading"></h2>
+        <p id="dash-sub"></p>
+      </div>
+      <div class="dash-list" id="dash-list"></div>
+      <div class="dash-legend" id="dash-legend"></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <div class="container contact-grid">
+      <div>
+        <div class="section-head">
+          <div class="section-kicker"><span class="dot"></span><span id="contact-kicker"></span></div>
+          <h2 id="contact-heading"></h2>
+          <p id="contact-sub"></p>
+        </div>
+        <div class="contact-links" id="contact-links"></div>
+      </div>
+      <form id="contact-form">
+        <div class="form-field"><label id="lbl-name"></label><input type="text" name="name" required></div>
+        <div class="form-field"><label id="lbl-email"></label><input type="email" name="email" required></div>
+        <div class="form-field"><label id="lbl-company"></label><input type="text" name="company"></div>
+        <div class="form-field"><label id="lbl-subject"></label><input type="text" name="subject" required></div>
+        <div class="form-field"><label id="lbl-message"></label><textarea name="message" rows="5" required></textarea></div>
+        <button type="submit" class="btn btn-primary" id="btn-send" style="width:100%"></button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span class="fnote" id="footer-note"></span>
+    <a href="#top" class="back-top" aria-label="Back to top">↑</a>
+  </div>
+</footer>
+
+<div class="modal-backdrop" id="projectModal">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="cat-row" id="modal-cats"></div>
+    <h3 id="modal-title"></h3>
+    <p class="summary" id="modal-summary" style="color:var(--text-dim); margin-top:6px"></p>
+    <div class="field"><div class="field-label" id="modal-lbl-problem"></div><p id="modal-problem"></p></div>
+    <div class="field"><div class="field-label" id="modal-lbl-approach"></div><p id="modal-approach"></p></div>
+    <div class="field"><div class="field-label" id="modal-lbl-result"></div><p id="modal-result"></p></div>
+    <div class="field"><div class="field-label" id="modal-lbl-stack"></div><div class="stack-row" id="modal-stack"></div></div>
+    <div class="field" id="modal-github-wrap"><a id="modal-github" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">GitHub ↗</a></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="viewerModal">
+  <div class="modal viewer">
+    <button class="modal-close" id="viewerClose" aria-label="Close">✕</button>
+    <h3 id="viewer-title"></h3>
+    <div class="viewer-body" id="viewer-body"></div>
+    <div class="viewer-actions">
+      <a id="viewer-open" class="btn btn-ghost btn-sm" href="#" target="_blank" rel="noopener"></a>
+      <a id="viewer-download" class="btn btn-ghost btn-sm" href="#" download></a>
+    </div>
+    <p class="viewer-note" id="viewer-note"></p>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/uploads.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

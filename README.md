@@ -1,66 +1,120 @@
-# Cyber Learning Hub
+# Thiego Araújo — Cyber Security / Cloud Security Portfolio
 
-Painel pessoal de aprendizagem em Cybersecurity: cursos, certificações, laboratórios, trilhas,
-biblioteca, metas e relatórios.
+Site pessoal estático (HTML/CSS/JS puro, sem build step, sem dependências de runtime)
+com foco em **Cyber Security, Cloud Security, Microsoft Azure, Vulnerability Management
+e Security Operations**. Bilíngue (EN padrão / PT-BR), tema dark.
 
-- **Site estático** (Next.js exportado) publicado no **GitHub Pages**.
-- **Dados** no **Supabase** (nuvem, plano gratuito), protegidos por login + RLS.
-- **Sem Docker** e sem servidor próprio.
+## Rodando localmente
 
-## Como a segurança funciona (repositório público, dados privados)
+Não precisa de instalação nem build. Duas formas:
 
-| Camada | O que faz |
-|---|---|
-| Repositório | Só código. Nenhuma senha/chave de serviço dentro. O `.env.local` é ignorado pelo Git. |
-| Login | Só existe **um** usuário (o seu). Cadastro público desativado. |
-| Trava no banco | Um *trigger* impede criar qualquer segundo usuário, mesmo que o cadastro seja reativado. |
-| RLS | Toda tabela só devolve linhas com `user_id = auth.uid()`. Sem login, o banco não devolve nada. |
-| Chave `anon` | É pública por definição (vai no site). Sem login ela não acessa nenhuma tabela. |
+1. **Abrir direto**: dê duplo clique em `index.html`.
+2. **Servidor local** (recomendado, evita qualquer restrição de navegador):
+   ```bash
+   python3 -m http.server 8000
+   # depois abra http://localhost:8000
+   ```
 
-Quem abrir o link do site só vê a tela de login.
+## Estrutura
 
-## Publicar (uma vez)
-
-### 1. Supabase (nuvem)
-1. Crie um projeto em <https://supabase.com> (gratuito).
-2. **SQL Editor**: rode, nesta ordem, o conteúdo de cada arquivo em `supabase/migrations/`:
-   1. `20261117000000_etapa_2_nucleo.sql`
-   2. `20261117010000_etapas_3_a_5.sql`
-3. **Authentication → Users → Add user → Create new user**: seu e-mail + uma senha forte
-   (marque *Auto Confirm User*).
-4. Rode o terceiro arquivo: `20261117020000_travar_acesso_so_para_voce.sql`.
-5. **Authentication → Sign In / Providers**: desative **Allow new users to sign up**.
-6. (Recomendado) ative MFA/TOTP em **Authentication → Multi-Factor**.
-7. **Project Settings → API**: anote a **Project URL** e a chave **anon public**.
-
-### 2. GitHub
-1. Crie um repositório **novo** (pode ser público) e envie este projeto.
-2. **Settings → Secrets and variables → Actions → aba Variables → New repository variable**:
-   - `SUPABASE_URL` = a Project URL
-   - `SUPABASE_ANON_KEY` = a chave anon public
-3. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-4. Faça um push na branch `main` (ou rode o workflow em *Actions*). Em 1–2 minutos o site abre em
-   `https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/`.
-
-### 3. Supabase: endereço do site
-Em **Authentication → URL Configuration**, coloque o endereço acima em **Site URL**.
-
-## Rodar no seu computador (opcional)
-Requisitos: Node.js 20+.
-
-```bash
-cp .env.example .env.local   # preencha com a URL e a chave anon do seu projeto Supabase
-npm install
-npm run dev                  # http://localhost:3000
+```
+index.html                 → estrutura da página (todas as seções)
+assets/css/style.css       → todo o visual (tokens de cor no topo do arquivo)
+assets/js/data.js          → TODO O CONTEÚDO do site (edite aqui, não no HTML)
+assets/js/main.js          → lógica: renderização, i18n, filtros, modal, menu
+assets/js/uploads.js       → GERADO pelo admin.html (certificados/documentos anexados)
+assets/certificates/       → PDFs/imagens dos certificados (preenchido pelo admin)
+assets/documents/          → transcript e outros documentos (preenchido pelo admin)
+admin.html                 → ferramenta para anexar certificados e documentos
+assets/resume/             → coloque seu PDF de currículo aqui
+assets/cert-badges/        → (opcional) imagens de badges de certificação
 ```
 
-## O que tem
-- **Dashboard** com indicadores, gráfico semanal (com meta) e registro de sessões de estudo.
-- **Meus cursos** (progresso por aulas, importação por link), **Certificações**, **Laboratórios**.
-- **Minhas plataformas** (cadastro manual, sem senhas), **Learning Paths**, **Biblioteca**.
-- **Metas e planejamento** (cronograma), **Relatórios** (gráficos + exportação CSV) e **Configurações**.
+## Anexar certificados, transcript e outros documentos
 
-## Observações
-- Se precisar recriar o seu usuário um dia, apague o trigger antes:
-  `drop trigger bloquear_novos_usuarios on auth.users;` e rode o arquivo 3 de novo depois.
-- O progresso de cursos externos (Udemy etc.) é registrado por você; não há integração por API.
+Sem editar código: use o **`admin.html`** (abra com duplo clique, ou em `.../admin.html` no site publicado).
+
+1. **Arraste os arquivos** (PDF, PNG, JPG ou WEBP, até 20 MB cada) para a área pontilhada.
+   Se o nome do arquivo tiver o código da certificação (ex.: `AZ-104.pdf`, `SC-200 certificate.pdf`),
+   ele é associado sozinho. O que não casar vira "documento" (ex.: `...transcript.pdf`).
+2. **Preencha** data (AAAA-MM), link de verificação (Credly, Microsoft etc.) e, nos itens "TODO",
+   o código e o nome reais. Dá para adicionar certificações extras e documentos.
+3. Marque a confirmação de privacidade e clique em **Gerar pacote (.zip)**.
+4. **Publique**: extraia o zip e arraste a pasta `assets` para o repositório no GitHub
+   (*Add file → Upload files → Commit changes*). Se usa só localmente, extraia por cima da pasta.
+
+No site, cada certificação ganha os botões **Ver certificado** (abre o PDF/imagem ali mesmo) e
+**Verificar** (link externo). Se houver documentos, aparece a seção **Documents / Documentos**.
+
+> **Privacidade:** tudo que for anexado fica público. Certificados e transcripts costumam ter CPF, RG,
+> matrícula, endereço ou número de candidato: apague/cubra esses dados antes, ou use só o link de
+> verificação (sem anexar o arquivo). Histórico escolar completo: prefira não publicar.
+
+### Por que `data.js` e não `data/*.json`?
+
+Um site 100% estático aberto via `file://` (duplo clique) não consegue usar
+`fetch()` para carregar `.json` por causa de CORS do navegador. Um arquivo
+`.js` com um objeto JavaScript funciona em qualquer lugar — local, GitHub
+Pages, Vercel, Netlify — sem servidor e sem build. A estrutura de dados é a
+mesma que um JSON; é só a extensão que muda.
+
+## Como atualizar o conteúdo
+
+Tudo fica em **`assets/js/data.js`**. Não precisa mexer no HTML nem no CSS.
+
+- **Dados pessoais / links**: objeto `meta` (email, LinkedIn, GitHub, PDF do currículo).
+- **Adicionar certificação**: pelo `admin.html` (recomendado) ou adicionando um objeto na lista `certifications`.
+  Campos: `code`, `name`, `vendor`, `category` (`microsoft` | `cybersecurity` |
+  `cloud` | `secops` | `other`), `date`, `verifyUrl`, `pdfUrl`.
+- **Adicionar projeto**: adicione um objeto na lista `projects`, preenchendo
+  `title`, `summary`, `stack`, `github` e o case study em `details`
+  (`problem`, `approach`, `result`) — cada campo com versão `en` e `pt`.
+- **Adicionar lab**: lista `labs`.
+- **Experiência profissional**: lista `experience`.
+- **Stack de tecnologias**: objeto `stack`, por categoria.
+- **Security Dashboard**: lista `dashboard`, campo `level` aceita
+  `"core"`, `"advanced"` ou `"hands-on"` (não é uma porcentagem inventada).
+
+Qualquer campo marcado como `"TODO"` está te esperando — o site funciona com
+os TODOs, mas eles ficam visíveis como texto, então vale substituir antes de
+publicar em definitivo.
+
+## Regra de conteúdo
+
+Este site **não deve conter certificações, empresas, cargos ou métricas
+inventadas**. Onde a informação real ainda não estava disponível, o campo foi
+deixado como `"TODO"` propositalmente — preencha só com dados reais. O feed
+de "Exposure" no hero e qualquer número de exemplo em gráficos estão
+marcados como **Demo data** e não representam ambientes reais.
+
+## Traduções (EN/PT-BR)
+
+Cada texto em `data.js` é um objeto `{ en: "...", pt: "..." }`. O idioma
+padrão é inglês; o visitante troca pelo botão **EN | PT** no menu, e a
+escolha fica salva no navegador (`localStorage`).
+
+## Publicar
+
+### GitHub Pages
+1. Suba este conteúdo para um repositório no GitHub.
+2. Nas configurações do repositório → **Pages** → Source: branch `main`,
+   pasta `/ (root)`.
+3. O site fica disponível em `https://SEU_USUARIO.github.io/NOME_DO_REPO/`.
+
+### Vercel / Netlify
+Não há build step — configure o *Build Command* como vazio e o
+*Publish/Output directory* como a raiz do projeto (`.`).
+
+## Checklist antes de publicar
+
+- [ ] Preencher `meta.email`, `meta.linkedin`, `meta.github` em `data.js`
+- [ ] Colocar o PDF do currículo em `assets/resume/resume.pdf`
+- [ ] Revisar e completar `experience`, `projects`, `labs` (remover TODOs)
+- [ ] Confirmar datas e links de validação das certificações
+- [ ] Ajustar `og:title` / `og:description` / `<title>` em `index.html` se mudar o texto principal
+- [ ] Testar em mobile (o layout já é responsivo, mas vale conferir)
+
+## Licença / uso
+
+Conteúdo pessoal — sinta-se à vontade para usar a estrutura de código como
+base para o seu próprio portfólio.
